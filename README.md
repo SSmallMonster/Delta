@@ -15,7 +15,7 @@ $ gcc -g -shared -fPIC -pthread -ldl -w -o libwrite_hook.so lib/libwrite_v3.c
 
 Compile with sharelibrary, this will use intercepted syscall open/write 
 ```shell
-$ gcc -o large_write -g -L. -lwrite_hook -Wl,-rpath=. large_write.c -lpthread
+$ gcc large_write.c -o large_write -g -L. -lwrite_hook -Wl,-rpath=. -lpthread -Daccl
 ```
 
 Or, you can directly compile

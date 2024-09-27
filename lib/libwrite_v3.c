@@ -13,7 +13,7 @@
 #define RTLD_NEXT ((void *) -1l)
 #endif
 
-pthread_mutex_t write_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 // 定义原始 write 函数指针
 ssize_t (*orig_write)(int fd, const void *buf, size_t count) = NULL;
@@ -22,7 +22,7 @@ static int (*orig_open)(const char *pathname, int flags, ...);
 
 int mem_fd = -1;
 int orig_fd = -1;
-
+extern int threads_all = 0;
 
 int open(const char *pathname, int flags, ...) {
     // 打印劫持信息
@@ -73,7 +73,7 @@ void* async_write_to_original(void* arg) {
         return NULL;
     }
 
-    pthread_mutex_lock(&write_lock);
+    sleep(3);
 
     // 写入原始文件
     ssize_t written = orig_write(orig_fd, data->buffer, data->count);
@@ -83,30 +83,32 @@ void* async_write_to_original(void* arg) {
         // printf("Asynchronously wrote %ld bytes to %s\n", written, data->orig_filepath);
     }
 
-    pthread_mutex_unlock(&write_lock);
-
     free(data->buffer);
     free(data);
+
+    pthread_mutex_lock(&lock);
+    threads_all--;
+    pthread_mutex_unlock(&lock);
     
     return NULL;
 }
 
 // 劫持 close 函数
-int close(int fd) {
-    // 加载真正的 close 函数
-    if (!real_close) {
-        real_close = dlsym(RTLD_NEXT, "close");
-        if (!real_close) {
-            fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // real_close(orig_fd); 不要关闭原始的文件，子线程可能还没完成写入
-
-    // 调用真正的 close 函数关闭原始文件描述符
-    return real_close(fd);
-}
+//int close(int fd) {
+//    // 加载真正的 close 函数
+//    if (!real_close) {
+//        real_close = dlsym(RTLD_NEXT, "close");
+//        if (!real_close) {
+//            fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
+//            exit(EXIT_FAILURE);
+//        }
+//    }
+//
+//    // real_close(orig_fd); 不要关闭原始的文件，子线程可能还没完成写入
+//
+//    // 调用真正的 close 函数关闭原始文件描述符
+//    return real_close(fd);
+//}
 
 // 劫持 write 函数
 ssize_t write(int fd, const void *buf, size_t count) {
@@ -137,6 +139,10 @@ ssize_t write(int fd, const void *buf, size_t count) {
         free(data->buffer);
         free(data);
     } else {
+        threads_all++;
+#ifdef debug
+	    printf("created threads: %d\n", threads_all);
+#endif        
         pthread_detach(tid);  // 分离线程
     }
 
