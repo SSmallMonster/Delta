@@ -8,7 +8,7 @@ Delta intercepts data and divert it to different storage directories.
 1. Compile libwrite_hook
 
 ```shell
-$ gcc -g -shared -fPIC -pthread -ldl -w -o libwrite_hook.so lib/libwrite_v3.c
+$ gcc -g -shared -fPIC -pthread -ldl -w -o libwrite_hook.so lib/libwrite_v3.c -Ddebug
 ```
 
 2. Compile Test Code

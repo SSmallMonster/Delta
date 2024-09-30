@@ -117,6 +117,13 @@ ssize_t write(int fd, const void *buf, size_t count) {
         orig_write = dlsym(RTLD_NEXT, "write");
     }
 
+    if (fd == 1 || fd == 2) {
+#ifdef debug
+       printf("direct file is stdout/err, ignore. \n");
+#endif
+       return orig_write(fd, buf, count);
+    }
+
     if (mem_fd == -1){
 	// 初始化内存文件
         perror("Error opening memory file");
@@ -139,7 +146,9 @@ ssize_t write(int fd, const void *buf, size_t count) {
         free(data->buffer);
         free(data);
     } else {
+        pthread_mutex_lock(&lock);
         threads_all++;
+        pthread_mutex_unlock(&lock);
 #ifdef debug
 	    printf("created threads: %d\n", threads_all);
 #endif        
