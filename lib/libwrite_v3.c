@@ -22,7 +22,8 @@ static int (*orig_open)(const char *pathname, int flags, ...);
 
 int mem_fd = -1;
 int orig_fd = -1;
-extern int threads_all = 0;
+extern int threads_created = 0;
+extern int threads_destroied = 0;
 
 int open(const char *pathname, int flags, ...) {
     // 打印劫持信息
@@ -87,7 +88,7 @@ void* async_write_to_original(void* arg) {
     free(data);
 
     pthread_mutex_lock(&lock);
-    threads_all--;
+    threads_destroied++;
     pthread_mutex_unlock(&lock);
     
     return NULL;
@@ -146,9 +147,7 @@ ssize_t write(int fd, const void *buf, size_t count) {
         free(data->buffer);
         free(data);
     } else {
-        pthread_mutex_lock(&lock);
-        threads_all++;
-        pthread_mutex_unlock(&lock);
+        threads_created++;
 #ifdef debug
 	    printf("created threads: %d\n", threads_all);
 #endif        

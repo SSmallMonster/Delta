@@ -10,9 +10,11 @@
 #define BUFFER_SIZE (1024 * 4)  // 4KB
 
 #ifndef accl
-static int threads_all = 0;
+static int threads_destroied = 0;
+static int threads_created = 0;
 #else
-extern int threads_all;
+extern int threads_destroied;
+extern int threads_created;
 #endif
 
 char* random_str() {
@@ -68,7 +70,7 @@ int main() {
 
     // 等待子线程全部结束 - 动态库异步写入原始存储
     while(1){
-    	if (threads_all == 0){
+        if (threads_destroied == threads_created){
 	    break;
     	}
 	sleep(1);
